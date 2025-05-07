@@ -4,32 +4,33 @@ import pydeck as pdk
 
 st.title("City-wise Coupon Redemption Map")
 
-# Upload CSV file
 uploaded_file = st.file_uploader("Upload your CSV file", type=["csv"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file)
 
-    # Convert percentages from strings to float values (e.g., "21.22%" → 21.22)
+    # Convert percentages to float
     df["Share of redemptions"] = df["Share of redemptions"].str.replace('%', '').astype(float)
     df["Redeemers out of total city base"] = df["Redeemers out of total city base"].str.replace('%', '').astype(float)
+
+    # Normalize Redeemers for color scaling
+    max_redeemers = df["Redeemers"].max()
+    df["fill_color"] = df["Redeemers"].apply(
+        lambda x: [255 * (1 - x / max_redeemers), 100, 150]
+    )
 
     # Preview data
     st.subheader("Data Preview")
     st.dataframe(df)
 
-    # Create a pydeck layer
+    # Create map layer
     layer = pdk.Layer(
         "ScatterplotLayer",
         data=df,
         get_position='[Longitude, Latitude]',
-        get_radius="Redeemers",  # Circle size based on Redeemers count
+        get_radius="Redeemers",
         radius_scale=15,
-        get_fill_color="""
-            [255 * (1 - Redeemers / 3300), 
-             100 + 100 * (Share of redemptions > 20), 
-             150]
-        """,
+        get_fill_color="fill_color",
         pickable=True,
         auto_highlight=True,
     )
